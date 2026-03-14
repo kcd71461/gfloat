@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Update Info.plist version
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          plutil -replace CFBundleShortVersionString -string "$VERSION" Resources/Info.plist
+          plutil -replace CFBundleVersion -string "$VERSION" Resources/Info.plist
+
+      - name: Build and bundle
+        run: bash scripts/bundle.sh
+
+      - name: Create zip
+        run: ditto -c -k --keepParent build/GFloat.app GFloat.app.zip
+
+      - name: Compute SHA256
+        id: sha
+        run: echo "sha256=$(shasum -a 256 GFloat.app.zip | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: GFloat.app.zip
+          generate_release_notes: true
+
+      - name: Update Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          git clone https://x-access-token:${TAP_TOKEN}@github.com/kcd71461/homebrew-tap.git tap
+          cd tap
+
+          VERSION=${{ steps.version.outputs.version }}
+          SHA256=${{ steps.sha.outputs.sha256 }}
+
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/gfloat.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/gfloat.rb
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/gfloat.rb
+          git commit -m "Update gfloat to ${VERSION}"
+          git push
