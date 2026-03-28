@@ -1,10 +1,25 @@
 import AppKit
 
-class FloatingWindow: NSWindow {
+class FloatingWindow: NSPanel {
     var onDidShow: (() -> Void)?
     private var deactivateObserver: Any?
     private var moveObserver: Any?
     private var lastEscTime: Date?
+    private(set) var isPinned: Bool = false
+
+    func setPin(_ pinned: Bool) {
+        // Check if another app is frontmost before changing styleMask
+        let anotherAppIsFrontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier != Bundle.main.bundleIdentifier
+        isPinned = pinned
+        if pinned {
+            styleMask.insert(.nonactivatingPanel)
+        } else {
+            styleMask.remove(.nonactivatingPanel)
+            if anotherAppIsFrontmost && Config.shared.hideOnDeactivate {
+                hide()
+            }
+        }
+    }
 
     init() {
         super.init(
@@ -15,6 +30,7 @@ class FloatingWindow: NSWindow {
         )
 
         self.isMovableByWindowBackground = false
+        self.hidesOnDeactivate = false
         self.isOpaque = false
         self.backgroundColor = .clear
         self.level = .floating
@@ -79,6 +95,9 @@ class FloatingWindow: NSWindow {
     }
 
     func hide() {
+        if isPinned {
+            setPin(false)
+        }
         orderOut(nil)
     }
 
@@ -96,7 +115,7 @@ class FloatingWindow: NSWindow {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard let self = self, self.isVisible, Config.shared.hideOnDeactivate else { return }
+            guard let self = self, self.isVisible, Config.shared.hideOnDeactivate, !self.isPinned else { return }
             let hasOtherWindows = NSApp.windows.contains(where: { $0 is PreferencesWindow || $0 is OnboardingWindow })
             if hasOtherWindows { return }
             self.hide()

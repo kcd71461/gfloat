@@ -3,12 +3,14 @@ import WebKit
 
 class WebViewController: NSViewController {
     private var webView: WKWebView!
+    private var handleBar: DragHandleBar!
 
     override func loadView() {
         let container = NSView()
 
         // Drag handle bar
-        let handleBar = DragHandleBar()
+        handleBar = DragHandleBar()
+        handleBar.delegate = self
         handleBar.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(handleBar)
 
@@ -116,10 +118,39 @@ extension WebViewController: WKNavigationDelegate {
     }
 }
 
+// MARK: - Drag Handle Bar Delegate
+
+protocol DragHandleBarDelegate: AnyObject {
+    func dragHandleBarDidTapHome(_ bar: DragHandleBar)
+    func dragHandleBarDidTapRefresh(_ bar: DragHandleBar)
+    func dragHandleBarDidTapPin(_ bar: DragHandleBar)
+}
+
+extension WebViewController: DragHandleBarDelegate {
+    func dragHandleBarDidTapHome(_ bar: DragHandleBar) {
+        loadGemini()
+    }
+
+    func dragHandleBarDidTapRefresh(_ bar: DragHandleBar) {
+        webView.reload()
+    }
+
+    func dragHandleBarDidTapPin(_ bar: DragHandleBar) {
+        guard let floatingWindow = view.window as? FloatingWindow else { return }
+        let newPinState = !floatingWindow.isPinned
+        floatingWindow.setPin(newPinState)
+        handleBar.updatePinIcon(isPinned: newPinState)
+    }
+}
+
 // MARK: - Drag Handle Bar
 
-private class DragHandleBar: NSView {
+class DragHandleBar: NSView {
+    weak var delegate: DragHandleBarDelegate?
+    private let pinButton: NSButton
+
     override init(frame: NSRect) {
+        pinButton = NSButton(frame: .zero)
         super.init(frame: frame)
         wantsLayer = true
         layer?.backgroundColor = NSColor(red: 0.1, green: 0.1, blue: 0.18, alpha: 1.0).cgColor
@@ -127,13 +158,28 @@ private class DragHandleBar: NSView {
         setAccessibilityLabel("Drag to move window")
         setAccessibilityRole(.handle)
 
-        // Pill indicator
+        // Left buttons: Home, Refresh
+        let homeButton = makeButton(symbolName: "house", accessibilityLabel: "Home", action: #selector(homeTapped))
+        let refreshButton = makeButton(symbolName: "arrow.clockwise", accessibilityLabel: "Refresh", action: #selector(refreshTapped))
+
+        let leftStack = NSStackView(views: [homeButton, refreshButton])
+        leftStack.orientation = .horizontal
+        leftStack.spacing = 4
+        leftStack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(leftStack)
+
+        // Center: Pill indicator
         let pill = NSView()
         pill.wantsLayer = true
         pill.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.5).cgColor
         pill.layer?.cornerRadius = 2.5
         pill.translatesAutoresizingMaskIntoConstraints = false
         addSubview(pill)
+
+        // Right: Pin button
+        configurePinButton(symbolName: "pin", accessibilityLabel: "Pin window", action: #selector(pinTapped))
+        pinButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(pinButton)
 
         // Bottom separator
         let sep = NSView()
@@ -143,11 +189,21 @@ private class DragHandleBar: NSView {
         addSubview(sep)
 
         NSLayoutConstraint.activate([
+            // Left stack
+            leftStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            leftStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            // Center pill
             pill.centerXAnchor.constraint(equalTo: centerXAnchor),
             pill.centerYAnchor.constraint(equalTo: centerYAnchor),
             pill.widthAnchor.constraint(equalToConstant: 48),
             pill.heightAnchor.constraint(equalToConstant: 5),
 
+            // Right pin button
+            pinButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            pinButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            // Bottom separator
             sep.leadingAnchor.constraint(equalTo: leadingAnchor),
             sep.trailingAnchor.constraint(equalTo: trailingAnchor),
             sep.bottomAnchor.constraint(equalTo: bottomAnchor),
@@ -157,11 +213,57 @@ private class DragHandleBar: NSView {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    func updatePinIcon(isPinned: Bool) {
+        let symbolName = isPinned ? "pin.fill" : "pin"
+        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: isPinned ? "Unpin window" : "Pin window")
+        pinButton.image = image?.withSymbolConfiguration(symbolConfig)
+    }
+
+    private func makeButton(symbolName: String, accessibilityLabel: String, action: Selector) -> NSButton {
+        let button = NSButton(frame: .zero)
+        configurePlainButton(button, symbolName: symbolName, accessibilityLabel: accessibilityLabel, action: action)
+        return button
+    }
+
+    private func configurePinButton(symbolName: String, accessibilityLabel: String, action: Selector) {
+        configurePlainButton(pinButton, symbolName: symbolName, accessibilityLabel: accessibilityLabel, action: action)
+    }
+
+    private func configurePlainButton(_ button: NSButton, symbolName: String, accessibilityLabel: String, action: Selector) {
+        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: accessibilityLabel)
+        button.image = image?.withSymbolConfiguration(symbolConfig)
+        button.bezelStyle = .inline
+        button.isBordered = false
+        button.imagePosition = .imageOnly
+        button.contentTintColor = .white
+        button.target = self
+        button.action = action
+        button.setAccessibilityLabel(accessibilityLabel)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: 24),
+            button.heightAnchor.constraint(equalToConstant: 24),
+        ])
+    }
+
+    @objc private func homeTapped() { delegate?.dragHandleBarDidTapHome(self) }
+    @objc private func refreshTapped() { delegate?.dragHandleBarDidTapRefresh(self) }
+    @objc private func pinTapped() { delegate?.dragHandleBarDidTapPin(self) }
+
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: .openHand)
     }
 
     override func mouseDown(with event: NSEvent) {
+        // Don't drag if click was on a button
+        let location = convert(event.locationInWindow, from: nil)
+        for subview in subviews {
+            if subview is NSButton || subview is NSStackView {
+                if subview.frame.contains(location) { return }
+            }
+        }
         NSCursor.closedHand.push()
         window?.performDrag(with: event)
         NSCursor.pop()
