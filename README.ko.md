@@ -28,7 +28,14 @@
 ```bash
 git clone https://github.com/kcd71461/gfloat.git
 cd gfloat
-swift build -c release
+bash scripts/install.sh
+```
+
+앱을 빌드하고 `/Applications`에 설치한 뒤 자동으로 실행합니다.
+
+설치 없이 빌드만 하려면:
+
+```bash
 bash scripts/bundle.sh
 open build/GFloat.app
 ```
@@ -98,6 +105,7 @@ gfloat/
 │   └── MenuBarIcon/             # 메뉴바 아이콘 에셋
 ├── scripts/
 │   ├── bundle.sh                # 빌드 및 .app 번들 생성
+│   ├── install.sh               # 빌드, /Applications 설치 및 실행
 │   ├── generate-icons.swift     # 아이콘 생성 유틸리티
 │   └── debug-window.swift       # 윈도우 디버깅 헬퍼
 ├── docs/                        # 문서
@@ -127,6 +135,9 @@ swift run GFloat
 
 # 릴리스 빌드 + 앱 번들
 bash scripts/bundle.sh
+
+# 빌드, /Applications 설치 및 실행
+bash scripts/install.sh
 ```
 
 ## 라이선스

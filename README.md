@@ -28,7 +28,14 @@
 ```bash
 git clone https://github.com/kcd71461/gfloat.git
 cd gfloat
-swift build -c release
+bash scripts/install.sh
+```
+
+This builds the app, installs it to `/Applications`, and launches it automatically.
+
+To build without installing:
+
+```bash
 bash scripts/bundle.sh
 open build/GFloat.app
 ```
@@ -98,6 +105,7 @@ gfloat/
 │   └── MenuBarIcon/             # Menu bar icon assets
 ├── scripts/
 │   ├── bundle.sh                # Build & create .app bundle
+│   ├── install.sh               # Build, install to /Applications & launch
 │   ├── generate-icons.swift     # Icon generation utility
 │   └── debug-window.swift       # Window debugging helper
 ├── docs/                        # Documentation
@@ -127,6 +135,9 @@ swift run GFloat
 
 # Release build + app bundle
 bash scripts/bundle.sh
+
+# Build, install to /Applications & launch
+bash scripts/install.sh
 ```
 
 ## License
