@@ -1,5 +1,10 @@
 # GFloat
 
+> [!WARNING]
+> **This project is archived and no longer maintained.**
+> Google now ships an official [Gemini desktop app for Mac](https://gemini.google/mac) with a built-in global shortcut, which covers what GFloat was built for. Please use the official app instead.
+> The source code and the last release ([v1.0.0](https://github.com/kcd71461/gfloat/releases/tag/v1.0.0)) remain available for reference, but no further updates, bug fixes, or support will be provided.
+
 **A floating Google Gemini window for macOS — always one hotkey away.**
 
 <!-- ![GFloat Demo](assets/demo.gif) -->
@@ -21,7 +26,7 @@
 
 ### Download
 
-> Prebuilt binaries will be available on the [GitHub Releases](../../releases) page.
+The last prebuilt binary (v1.0.0) is available on the [GitHub Releases](../../releases) page. It is no longer updated.
 
 ### Build from Source
 

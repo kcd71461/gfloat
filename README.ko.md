@@ -1,5 +1,10 @@
 # GFloat
 
+> [!WARNING]
+> **이 프로젝트는 아카이브되었으며 더 이상 유지보수되지 않습니다.**
+> Google이 글로벌 단축키를 지원하는 공식 [Gemini Mac 데스크톱 앱](https://gemini.google/mac)을 출시하여, GFloat가 만들어진 목적을 대체합니다. 공식 앱을 사용해 주세요.
+> 소스 코드와 마지막 릴리스([v1.0.0](https://github.com/kcd71461/gfloat/releases/tag/v1.0.0))는 참고용으로 남겨두지만, 추가 업데이트·버그 수정·지원은 제공되지 않습니다.
+
 **macOS용 플로팅 Google Gemini 창 — 단축키 하나로 언제든지.**
 
 <!-- ![GFloat 데모](assets/demo.gif) -->
@@ -21,7 +26,7 @@
 
 ### 다운로드
 
-> 미리 빌드된 바이너리는 [GitHub Releases](../../releases) 페이지에서 제공될 예정입니다.
+마지막 빌드 바이너리(v1.0.0)는 [GitHub Releases](../../releases) 페이지에서 받을 수 있습니다. 더 이상 업데이트되지 않습니다.
 
 ### 소스에서 빌드
 
